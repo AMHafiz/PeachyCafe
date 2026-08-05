@@ -1,0 +1,112 @@
+@import "tailwindcss";
+
+:root {
+  /* Brand palette, pulled from thepeachy.ca's production CSS */
+  --color-peach: #ed767a;
+  --color-peach-light: #f9bfb8;
+  --color-peach-lighter: #fac4bd;
+  --color-blush: #f0d1d2;
+  --color-cream: #fef6f2;
+  --color-off-white: #fbfbfb;
+  --color-surface: #fafafa;
+
+  --color-ink: #1a1b1f;
+  --color-ink-muted: #757575;
+  --color-ink-faint: #adadad;
+  --color-border: #e4dcd8;
+  --color-cocoa: #7a4a3a;
+  --color-cocoa-light: #a9776a;
+
+  --background: #ffffff;
+  --foreground: var(--color-ink);
+}
+
+@theme inline {
+  --color-peach: var(--color-peach);
+  --color-peach-light: var(--color-peach-light);
+  --color-peach-lighter: var(--color-peach-lighter);
+  --color-blush: var(--color-blush);
+  --color-cream: var(--color-cream);
+  --color-off-white: var(--color-off-white);
+  --color-surface: var(--color-surface);
+  --color-ink: var(--color-ink);
+  --color-ink-muted: var(--color-ink-muted);
+  --color-ink-faint: var(--color-ink-faint);
+  --color-border: var(--color-border);
+  --color-cocoa: var(--color-cocoa);
+  --color-cocoa-light: var(--color-cocoa-light);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-serif: var(--font-heading);
+  --font-sans: var(--font-body);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-body), system-ui, sans-serif;
+}
+
+h1, h2, h3, h4,
+.font-heading {
+  font-family: var(--font-heading), Georgia, serif;
+}
+
+/* Fluid, responsive type scale */
+.text-display {
+  font-size: clamp(2.25rem, 1.7rem + 2.5vw, 4rem);
+  line-height: 1.05;
+}
+.text-h2 {
+  font-size: clamp(1.75rem, 1.45rem + 1.3vw, 2.75rem);
+  line-height: 1.1;
+}
+.text-h3 {
+  font-size: clamp(1.25rem, 1.1rem + 0.6vw, 1.75rem);
+  line-height: 1.2;
+}
+
+/* Visible, brand-colored focus ring for keyboard users everywhere */
+:focus-visible {
+  outline: 2px solid var(--color-peach);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Skip link: hidden until focused */
+.skip-link {
+  position: absolute;
+  left: 1rem;
+  top: -3rem;
+  z-index: 100;
+  background: var(--color-ink);
+  color: white;
+  padding: 0.75rem 1.25rem;
+  border-radius: 0.5rem;
+  transition: top 0.15s ease;
+}
+.skip-link:focus {
+  top: 1rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Thin, brand-tinted scrollbar for horizontally scrolling chip rows */
+.chip-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-peach-light) transparent;
+}
+.chip-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+.chip-scroll::-webkit-scrollbar-thumb {
+  background: var(--color-peach-light);
+  border-radius: 999px;
+}
