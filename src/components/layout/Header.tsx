@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Menu as MenuIcon, Search, ShoppingBag, X } from "lucide-react";
 import { useCart } from "@/components/cart/CartContext";
@@ -14,8 +15,34 @@ const NAV_LINKS = [
 
 export function Header() {
   const { itemCount, openCart } = useCart();
+  const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+
+  function closeSearch() {
+    setSearchOpen(false);
+    // If a search is currently filtering /menu results, drop the ?q= param so
+    // closing the search bar restores the default menu view -- client-side
+    // navigation only, no page refresh. Read window.location directly (rather
+    // than useSearchParams/usePathname) so Header -- rendered on every page via
+    // the root layout -- doesn't force the whole app out of static rendering.
+    if (window.location.pathname === "/menu") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.has("q")) {
+        params.delete("q");
+        const qs = params.toString();
+        router.replace(qs ? `/menu?${qs}` : "/menu");
+      }
+    }
+  }
+
+  function handleSearchToggle() {
+    if (searchOpen) {
+      closeSearch();
+    } else {
+      setSearchOpen(true);
+    }
+  }
 
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-white/95 backdrop-blur">
@@ -40,7 +67,7 @@ export function Header() {
         <div className="flex items-center gap-1">
           <button
             type="button"
-            onClick={() => setSearchOpen((v) => !v)}
+            onClick={handleSearchToggle}
             aria-label={searchOpen ? "Close search" : "Open search"}
             aria-expanded={searchOpen}
             data-analytics-id="nav-search-toggle"
@@ -77,7 +104,7 @@ export function Header() {
 
       {searchOpen && (
         <div className="border-t border-border px-4 py-3 sm:px-6">
-          <SearchBar autoFocus />
+          <SearchBar autoFocus onClear={closeSearch} />
         </div>
       )}
 

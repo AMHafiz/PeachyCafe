@@ -8,6 +8,9 @@ import { ANALYTICS_EVENTS, track } from "@/lib/analytics";
 interface SearchBarProps {
   value?: string;
   onChange?: (value: string) => void;
+  /** Fired after the inner clear ("x") button empties the field -- lets a parent
+   * (e.g. the header) also close its search overlay and reset any active results. */
+  onClear?: () => void;
   autoFocus?: boolean;
   placeholder?: string;
 }
@@ -16,7 +19,7 @@ interface SearchBarProps {
  * Standalone (header): manages its own text and redirects to /menu?q= on submit.
  * Controlled (menu page): pass value/onChange to filter results live, no navigation.
  */
-export function SearchBar({ value, onChange, autoFocus, placeholder = "Search cakes, drinks, flavors…" }: SearchBarProps) {
+export function SearchBar({ value, onChange, onClear, autoFocus, placeholder = "Search cakes, drinks, flavors…" }: SearchBarProps) {
   const router = useRouter();
   const inputId = useId();
   const isControlled = value !== undefined && onChange !== undefined;
@@ -61,7 +64,10 @@ export function SearchBar({ value, onChange, autoFocus, placeholder = "Search ca
       {current && (
         <button
           type="button"
-          onClick={() => handleChange("")}
+          onClick={() => {
+            handleChange("");
+            onClear?.();
+          }}
           aria-label="Clear search"
           className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-ink-faint hover:bg-white"
         >
