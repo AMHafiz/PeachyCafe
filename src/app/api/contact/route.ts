@@ -77,7 +77,10 @@ export async function POST(request: Request) {
   });
 
   if (error) {
-    console.error("Resend failed to send contact email:", error);
+    console.error("Resend failed to send contact email:", {
+      name: error.name,
+      message: error.message,
+    });
     return NextResponse.json({ error: "We couldn't send your message. Please try again shortly." }, { status: 502 });
   }
 

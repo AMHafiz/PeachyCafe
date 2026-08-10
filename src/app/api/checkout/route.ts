@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
+import { formatPickupTimeValue } from "@/lib/storeHours";
 
 export interface CheckoutOrderItem {
   name: string;
@@ -62,7 +63,7 @@ function renderEmailHtml(body: CheckoutRequestBody): string {
         </tr>
         <tr>
           <td style="padding:4px 12px 4px 0;color:#757575;">Pickup Time Slot</td>
-          <td style="font-weight:600;">${body.pickupTimeSlot}</td>
+          <td style="font-weight:600;">${formatPickupTimeValue(body.pickupTimeSlot)}</td>
         </tr>
       </table>
 
@@ -163,7 +164,10 @@ export async function POST(request: Request) {
   });
 
   if (error) {
-    console.error("Resend failed to send order email:", error);
+    console.error("Resend failed to send order email:", {
+      name: error.name,
+      message: error.message,
+    });
     return NextResponse.json({ error: "We couldn't submit your order. Please try again shortly." }, { status: 502 });
   }
 

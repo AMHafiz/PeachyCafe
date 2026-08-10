@@ -12,13 +12,13 @@ import type { Product } from "@/lib/types";
  * are intentionally left unset -- there's no real data to back them yet. The
  * UI fully supports both; they simply render nothing until populated.
  *
- * Image paths point at /public/images/products/<slug>.jpg (card/quick-view
- * image) and <slug>-1.jpg, <slug>-2.jpg, ... (product-page gallery, whole
- * cakes only) -- see public/images/products/README.md for the full naming
- * convention. None of those files are checked in yet, so every one of these
- * currently 404s; <ProductImage> catches that and falls back to the branded
- * placeholder automatically, so the site looks right either way. Drop real
- * photos in with matching filenames and they'll appear with no code changes.
+ * Image paths point at /public/images/products/<slug>.jpg (card/quick-view/
+ * product-page image) -- see public/images/products/README.md for the full
+ * naming convention. Whole cakes can additionally set `gallery` for extra
+ * product-page angles (<slug>-1.jpg, <slug>-2.jpg, ...) once those photos
+ * are shot; until then, omit `gallery` and <ProductGallery> falls back to
+ * the single main `image` automatically. <ProductImage> also falls back to
+ * a branded placeholder if a path 404s, so the site looks right either way.
  */
 
 const CREAM_STORAGE =
@@ -29,10 +29,6 @@ const CREAM_ALLERGENS = ["Milk", "Eggs", "Wheat"];
 
 function productImage(slug: string) {
   return `/images/products/${slug}.jpg`;
-}
-
-function galleryImage(slug: string, index: number) {
-  return `/images/products/${slug}-${index}.jpg`;
 }
 
 export const products: Product[] = [
@@ -64,12 +60,8 @@ export const products: Product[] = [
       alt: "Whole round cake covered in fresh cream with sliced strawberries on top",
       tone: "blush",
     },
-    gallery: [
-      { src: galleryImage("greek-yogurt-strawberry-fresh-cream-cake", 1), alt: "Whole Greek Yogurt Strawberry cake, front view", tone: "blush" },
-      { src: galleryImage("greek-yogurt-strawberry-fresh-cream-cake", 2), alt: "Sliced cross-section showing strawberry and cream layers", tone: "cream" },
-    ],
     filterTags: ["fruit"],
-    pairsWith: ["dr-matcha-latte", "dr-peach-ade"],
+    pairsWith: ["dr-matcha-latte"],
   },
   {
     id: "wc-queens-carrot",
@@ -91,7 +83,6 @@ export const products: Product[] = [
       { label: '8"', price: 75 },
     ],
     image: { src: productImage("queens-carrot-cake"), alt: "Whole carrot cake with cream cheese frosting and pecan garnish", tone: "cream" },
-    gallery: [{ src: galleryImage("queens-carrot-cake", 1), alt: "Queens Carrot cake, front view", tone: "cream" }],
     pairsWith: ["dr-spanish-latte", "dr-vanilla-latte"],
   },
   {
@@ -114,9 +105,8 @@ export const products: Product[] = [
       { label: '8"', price: 75 },
     ],
     image: { src: productImage("mascarpone-mixed-berry-cake"), alt: "Whole white cake topped with mixed berries", tone: "blush" },
-    gallery: [{ src: galleryImage("mascarpone-mixed-berry-cake", 1), alt: "Mascarpone Mixed Berry cake, front view", tone: "blush" }],
     filterTags: ["fruit"],
-    pairsWith: ["dr-matcha-latte", "dr-milk-tea"],
+    pairsWith: ["dr-matcha-latte"],
   },
   {
     id: "wc-strawberry-chocolate",
@@ -142,7 +132,6 @@ export const products: Product[] = [
       alt: "Whole chocolate cake with strawberries and chocolate pearls on top",
       tone: "chocolate",
     },
-    gallery: [{ src: galleryImage("strawberry-chocolate-fresh-cream-cake", 1), alt: "Strawberry Chocolate Fresh Cream cake, front view", tone: "chocolate" }],
     filterTags: ["chocolate", "fruit"],
     pairsWith: ["dr-spanish-latte", "dr-americano"],
   },
@@ -170,7 +159,6 @@ export const products: Product[] = [
       alt: "Whole triple chocolate mousse cake with a glossy chocolate finish",
       tone: "chocolate",
     },
-    gallery: [{ src: galleryImage("triple-chocolate-mousse-cake", 1), alt: "Triple Chocolate Mousse cake, front view", tone: "chocolate" }],
     filterTags: ["chocolate"],
     pairsWith: ["dr-spanish-latte", "dr-americano"],
   },
@@ -222,7 +210,6 @@ export const products: Product[] = [
       tone: "blush",
     },
     filterTags: ["fruit"],
-    pairsWith: ["dr-peach-ade"],
   },
   {
     id: "sc-shine-muscat-greek-yogurt",
@@ -250,7 +237,7 @@ export const products: Product[] = [
   {
     id: "sc-strawberry-chocolate",
     slug: "strawberry-chocolate-fresh-cream-spoon-cake",
-    name: "Strawberry Chocolate Fresh Cream",
+    name: "Strawberry Chocolate Fresh Cream Spoon Cake",
     category: "spoon-cakes",
     size: "small",
     shortDescription: "Fresh strawberries and crunchy chocolate balls between chocolate whipped cream.",
@@ -317,7 +304,6 @@ export const products: Product[] = [
       alt: "Bowl of shaved ice bingsu topped with red bean paste and injeolmi powder",
       tone: "cream",
     },
-    pairsWith: ["dr-milk-tea"],
   },
   {
     id: "bs-apple-mango",
@@ -338,7 +324,6 @@ export const products: Product[] = [
     ],
     image: { src: productImage("apple-mango-bingsu"), alt: "Bowl of shaved ice bingsu topped with mango cubes and cheesecake", tone: "peach" },
     filterTags: ["fruit"],
-    pairsWith: ["dr-peach-ade"],
   },
   {
     id: "bs-premium-strawberry",
@@ -580,41 +565,6 @@ export const products: Product[] = [
     isPlaceholderContent: true,
   },
   {
-    id: "dr-peach-ade",
-    slug: "peach-ade",
-    name: "Peach Ade",
-    category: "drinks",
-    size: "small",
-    shortDescription: "Sparkling peach-infused ade, light and refreshing.",
-    description: "Sparkling, lightly sweet peach ade served over ice -- our signature refresher and a nod to the shop's name.",
-    ingredients: ["Peach syrup", "Soda water", "Ice"],
-    allergens: [],
-    storage: "Best enjoyed immediately after preparation.",
-    servingInfo: "Served iced.",
-    shelfLife: "Made to order.",
-    sizes: [{ label: "16oz", price: 6.5 }],
-    image: { src: productImage("peach-ade"), alt: "Sparkling peach ade in a tall glass with ice and peach slices", tone: "peach" },
-    filterTags: ["fruit"],
-    isPlaceholderContent: true,
-  },
-  {
-    id: "dr-milk-tea",
-    slug: "milk-tea",
-    name: "Milk Tea",
-    category: "drinks",
-    size: "small",
-    shortDescription: "Classic black tea steeped strong and finished with creamy milk.",
-    description: "Classic black tea steeped strong and finished with creamy milk -- a smooth, comforting match for our Korean-style desserts.",
-    ingredients: ["Black tea", "Milk", "Sugar"],
-    allergens: ["Milk"],
-    storage: "Best enjoyed immediately after preparation.",
-    servingInfo: "Served hot or iced.",
-    shelfLife: "Made to order.",
-    sizes: [{ label: "12oz", price: 5.95 }],
-    image: { src: productImage("milk-tea"), alt: "Milk tea in a clear cup over ice", tone: "cream" },
-    isPlaceholderContent: true,
-  },
-  {
     id: "dr-americano",
     slug: "americano",
     name: "Americano",
@@ -653,76 +603,113 @@ export const products: Product[] = [
 
   // ---------------------------------------------------------------------
   // BAKERY -- placeholder catalog, see note above.
+  //
+  // Exception: the six "Cream Croissant" items below are real, published
+  // Peachy menu items (per the client's own Uber Eats listing screenshot).
+  // Prices, names, and descriptions are sourced directly from that listing.
+  // The Chocolate Cream Croissants description was cut off in the source
+  // screenshot -- the tail end here is a natural completion, not a literal
+  // quote.
   // ---------------------------------------------------------------------
   {
-    id: "bk-butter-croissant",
-    slug: "butter-croissant",
-    name: "Butter Croissant",
+    id: "bk-chocolate-cream-croissant",
+    slug: "chocolate-cream-croissant",
+    name: "Chocolate Cream Croissants",
     category: "bakery",
     size: "small",
-    shortDescription: "Laminated all-butter croissant, baked fresh daily.",
-    description: "A classic all-butter croissant, laminated for a shatter-crisp exterior and soft, layered interior. Baked fresh daily.",
-    ingredients: ["Butter", "Flour", "Yeast", "Milk", "Sugar"],
+    shortDescription: "Flaky, buttery croissant dough filled with rich, creamy chocolate.",
+    description:
+      "Delicious pastry made with flaky, buttery croissant dough filled with rich, creamy chocolate custard and dipped in chocolate ganache.",
+    ingredients: ["Butter", "Flour", "Chocolate custard cream", "Chocolate ganache"],
     allergens: ["Milk", "Wheat", "Eggs"],
     storage: "Best enjoyed same day at room temperature; store in a paper bag, not plastic.",
     servingInfo: "Delicious on its own or gently warmed for 3-4 minutes.",
     shelfLife: "1 day at room temperature.",
-    sizes: [{ label: "Each", price: 4.95 }],
-    image: { src: productImage("butter-croissant"), alt: "Golden butter croissant on a plate", tone: "cream" },
-    isPlaceholderContent: true,
-  },
-  {
-    id: "bk-choco-chip-cookie",
-    slug: "chocolate-chip-cookie",
-    name: "Chocolate Chip Cookie",
-    category: "bakery",
-    size: "small",
-    shortDescription: "Thick, chewy cookie loaded with Belgian chocolate chunks.",
-    description: "A thick, chewy cookie loaded with Callebaut Belgian chocolate chunks and a hint of sea salt.",
-    ingredients: ["Callebaut Belgian chocolate", "Butter", "Flour", "Brown sugar", "Eggs", "Sea salt"],
-    allergens: ["Milk", "Wheat", "Eggs"],
-    storage: "Store in an airtight container at room temperature.",
-    servingInfo: "Best enjoyed fresh; warm for 10 seconds for a gooey center.",
-    shelfLife: "3 days at room temperature.",
-    sizes: [{ label: "Each", price: 3.95 }],
-    image: { src: productImage("chocolate-chip-cookie"), alt: "Chocolate chip cookie loaded with chocolate chunks", tone: "chocolate" },
+    sizes: [{ label: "Each", price: 8.7 }],
+    image: { src: productImage("chocolate-cream-croissant"), alt: "Croissant filled with chocolate cream and dipped in chocolate ganache", tone: "chocolate" },
     filterTags: ["chocolate"],
-    isPlaceholderContent: true,
   },
   {
-    id: "bk-earl-grey-macaron",
-    slug: "earl-grey-macaron",
-    name: "Earl Grey Macaron",
+    id: "bk-earl-grey-milk-tea-cream-croissant",
+    slug: "earl-grey-milk-tea-cream-croissant",
+    name: "Earl Grey Milk Tea Cream Croissants",
     category: "bakery",
     size: "small",
-    shortDescription: "Delicate almond shells filled with Earl Grey buttercream.",
-    description: "Delicate almond meringue shells sandwiched around a fragrant Earl Grey buttercream.",
-    ingredients: ["Almond flour", "Egg whites", "Sugar", "Butter", "Earl Grey tea"],
-    allergens: ["Tree Nuts (Almond)", "Eggs", "Milk"],
-    storage: "Keep refrigerated; bring to room temperature 10 minutes before serving.",
-    servingInfo: "Best served at room temperature.",
-    shelfLife: "3 days refrigerated.",
-    sizes: [{ label: "Each", price: 2.75 }],
-    image: { src: productImage("earl-grey-macaron"), alt: "Earl Grey macaron on a small plate", tone: "blush" },
-    isPlaceholderContent: true,
-  },
-  {
-    id: "bk-red-velvet-cookie",
-    slug: "red-velvet-cookie",
-    name: "Red Velvet Cookie",
-    category: "bakery",
-    size: "small",
-    shortDescription: "Soft red velvet cookie with white chocolate chunks and cream cheese swirl.",
-    description: "A soft, cocoa-forward red velvet cookie studded with white chocolate chunks and a cream cheese swirl.",
-    ingredients: ["Cocoa", "White chocolate", "Cream cheese", "Butter", "Flour", "Eggs"],
+    shortDescription: "Flaky pastry filled with Earl Grey milk tea-infused cream.",
+    description: "Flaky pastry filled with Earl Grey milk tea-infused cream.",
+    ingredients: ["Butter", "Flour", "Earl Grey tea", "Milk tea cream"],
     allergens: ["Milk", "Wheat", "Eggs"],
-    storage: "Store in an airtight container at room temperature.",
-    servingInfo: "Best enjoyed fresh.",
-    shelfLife: "3 days at room temperature.",
-    sizes: [{ label: "Each", price: 3.95 }],
-    image: { src: productImage("red-velvet-cookie"), alt: "Red velvet cookie with white chocolate chunks", tone: "blush" },
-    filterTags: ["chocolate"],
-    isPlaceholderContent: true,
+    storage: "Best enjoyed same day at room temperature; store in a paper bag, not plastic.",
+    servingInfo: "Delicious on its own or gently warmed for 3-4 minutes.",
+    shelfLife: "1 day at room temperature.",
+    sizes: [{ label: "Each", price: 8.35 }],
+    image: { src: productImage("earl-grey-milk-tea-cream-croissant"), alt: "Croissant filled with Earl Grey milk tea cream, drizzled on top", tone: "cream" },
+  },
+  {
+    id: "bk-matcha-cream-croissant",
+    slug: "matcha-cream-croissant",
+    name: "Matcha Cream Croissants",
+    category: "bakery",
+    size: "small",
+    shortDescription: "Flaky pastry filled with a rich matcha cream.",
+    description: "Flaky pastry filled with a rich matcha cream.",
+    ingredients: ["Butter", "Flour", "Matcha green tea powder", "Matcha cream"],
+    allergens: ["Milk", "Wheat", "Eggs"],
+    storage: "Best enjoyed same day at room temperature; store in a paper bag, not plastic.",
+    servingInfo: "Delicious on its own or gently warmed for 3-4 minutes.",
+    shelfLife: "1 day at room temperature.",
+    sizes: [{ label: "Each", price: 8.7 }],
+    image: { src: productImage("matcha-cream-croissant"), alt: "Croissant filled with matcha cream, drizzled with matcha on top", tone: "cream" },
+  },
+  {
+    id: "bk-real-fresh-milk-cream-croissant",
+    slug: "real-fresh-milk-cream-croissant",
+    name: "Real Fresh Milk Cream Croissants",
+    category: "bakery",
+    size: "small",
+    shortDescription: "Flaky pastry filled with rich milk cream.",
+    description: "Flaky pastry filled with rich milk cream.",
+    ingredients: ["Butter", "Flour", "Fresh milk cream"],
+    allergens: ["Milk", "Wheat", "Eggs"],
+    storage: "Best enjoyed same day at room temperature; store in a paper bag, not plastic.",
+    servingInfo: "Delicious on its own or gently warmed for 3-4 minutes.",
+    shelfLife: "1 day at room temperature.",
+    sizes: [{ label: "Each", price: 7.75 }],
+    image: { src: productImage("real-fresh-milk-cream-croissant"), alt: "Croissant filled with fresh milk cream, dusted with powdered sugar", tone: "cream" },
+  },
+  {
+    id: "bk-strawberry-cream-croissant",
+    slug: "strawberry-cream-croissant",
+    name: "Strawberry Cream Croissants",
+    category: "bakery",
+    size: "small",
+    shortDescription: "Flaky pastry filled with sweet strawberry cream.",
+    description: "Flaky pastry filled with sweet strawberry cream.",
+    ingredients: ["Butter", "Flour", "Strawberry cream", "Fresh strawberries"],
+    allergens: ["Milk", "Wheat", "Eggs"],
+    storage: "Best enjoyed same day at room temperature; store in a paper bag, not plastic.",
+    servingInfo: "Delicious on its own or gently warmed for 3-4 minutes.",
+    shelfLife: "1 day at room temperature.",
+    sizes: [{ label: "Each", price: 8.7 }],
+    image: { src: productImage("strawberry-cream-croissant"), alt: "Croissant filled with strawberry cream and topped with fresh strawberry slices", tone: "blush" },
+    filterTags: ["fruit"],
+  },
+  {
+    id: "bk-tiramisu-cream-croissant",
+    slug: "tiramisu-cream-croissant",
+    name: "Tiramisu Cream Croissants",
+    category: "bakery",
+    size: "small",
+    shortDescription: "Cream-filled croissants infused with the essence of tiramisu.",
+    description: "Cream-filled croissants infused with the essence of tiramisu.",
+    ingredients: ["Butter", "Flour", "Mascarpone cream", "Coffee", "Cocoa"],
+    allergens: ["Milk", "Wheat", "Eggs"],
+    storage: "Best enjoyed same day at room temperature; store in a paper bag, not plastic.",
+    servingInfo: "Delicious on its own or gently warmed for 3-4 minutes.",
+    shelfLife: "1 day at room temperature.",
+    sizes: [{ label: "Each", price: 8.35 }],
+    image: { src: productImage("tiramisu-cream-croissant"), alt: "Croissant filled with tiramisu cream and dusted with cocoa powder", tone: "chocolate" },
+    filterTags: ["coffee"],
   },
 ];
 

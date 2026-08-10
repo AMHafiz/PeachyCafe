@@ -14,7 +14,7 @@ interface AddToCartButtonProps {
 export function AddToCartButton({ product, sizeLabel, quantity = 1, className = "", analyticsId }: AddToCartButtonProps) {
   const { addItem } = useCart();
   const size = product.sizes.find((s) => s.label === sizeLabel);
-  const disabled = !size || size.price === null;
+  const disabled = !size || size.price === null || !!product.isSoldOut;
 
   return (
     <button
@@ -25,7 +25,7 @@ export function AddToCartButton({ product, sizeLabel, quantity = 1, className = 
       data-product-id={product.id}
       className={`flex min-h-12 items-center justify-center rounded-full bg-peach px-6 font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:bg-border disabled:text-ink-muted disabled:opacity-100 ${className}`}
     >
-      {disabled ? "Coming Soon" : "Add to Cart"}
+      {disabled ? (product.isSoldOut ? "Sold Out" : "Coming Soon") : "Add to Cart"}
     </button>
   );
 }

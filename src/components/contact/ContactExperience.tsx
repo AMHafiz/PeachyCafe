@@ -1,9 +1,10 @@
 "use client";
 
-import { useId, useState, type ReactNode } from "react";
-import { Mail } from "lucide-react";
+import { useId, useMemo, useState, type ReactNode } from "react";
+import { Mail, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 import { ANALYTICS_EVENTS, track } from "@/lib/analytics";
+import { generateTimeSlots } from "@/lib/storeHours";
 import type { ContactRequestBody } from "@/app/api/contact/route";
 
 const PICKUP_LOCATIONS = [
@@ -93,6 +94,15 @@ export function ContactExperience() {
   function updateField<K extends keyof FormData>(field: K, value: FormData[K]) {
     setFormData((prev) => ({ ...prev, [field]: value }));
   }
+
+  function handlePickupDateChange(nextDate: string) {
+    // Reset the time whenever the date changes -- a previously chosen slot may
+    // no longer be valid (different day's hours, or it's since passed today).
+    setFormData((prev) => ({ ...prev, pickupDate: nextDate, pickupTime: "" }));
+    setErrors((prev) => ({ ...prev, pickupTime: undefined }));
+  }
+
+  const timeSlots = useMemo(() => generateTimeSlots(formData.pickupDate), [formData.pickupDate]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -231,7 +241,7 @@ export function ContactExperience() {
                     type="date"
                     min={new Date().toISOString().split("T")[0]}
                     value={formData.pickupDate}
-                    onChange={(e) => updateField("pickupDate", e.target.value)}
+                    onChange={(e) => handlePickupDateChange(e.target.value)}
                     aria-invalid={!!errors.pickupDate}
                     aria-describedby={errors.pickupDate ? `${formId}-pickupDate-error` : undefined}
                     className={inputClass}
@@ -239,15 +249,32 @@ export function ContactExperience() {
                 </Field>
 
                 <Field label="Pickup Time" htmlFor={`${formId}-pickupTime`} error={errors.pickupTime}>
-                  <input
-                    id={`${formId}-pickupTime`}
-                    type="time"
-                    value={formData.pickupTime}
-                    onChange={(e) => updateField("pickupTime", e.target.value)}
-                    aria-invalid={!!errors.pickupTime}
-                    aria-describedby={errors.pickupTime ? `${formId}-pickupTime-error` : undefined}
-                    className={inputClass}
-                  />
+                  {formData.pickupDate && timeSlots.length === 0 ? (
+                    <div
+                      id={`${formId}-pickupTime`}
+                      className="flex min-h-12 items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 text-sm text-amber-800"
+                    >
+                      <TriangleAlert className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
+                      <span>Ordering is unavailable for that day/time. Please choose another date.</span>
+                    </div>
+                  ) : (
+                    <select
+                      id={`${formId}-pickupTime`}
+                      value={formData.pickupTime}
+                      onChange={(e) => updateField("pickupTime", e.target.value)}
+                      disabled={!formData.pickupDate}
+                      aria-invalid={!!errors.pickupTime}
+                      aria-describedby={errors.pickupTime ? `${formId}-pickupTime-error` : undefined}
+                      className={`${inputClass} disabled:cursor-not-allowed disabled:opacity-60`}
+                    >
+                      <option value="">{formData.pickupDate ? "Select a time" : "Select a date first"}</option>
+                      {timeSlots.map((slot) => (
+                        <option key={slot.value} value={slot.value}>
+                          {slot.label}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </Field>
               </div>
 

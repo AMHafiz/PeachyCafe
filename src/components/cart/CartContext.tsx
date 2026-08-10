@@ -93,6 +93,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   function clearCart() {
     setLines([]);
+    // Written directly (not left to the persist effect above) so it takes
+    // effect even if this runs before that effect's hydration read -- e.g.
+    // on the order-success page, which clears the cart on mount alongside
+    // this same provider's own hydration effect.
+    try {
+      window.localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // ignore corrupt/blocked storage
+    }
   }
 
   const items: CartItem[] = useMemo(

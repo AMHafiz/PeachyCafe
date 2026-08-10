@@ -12,7 +12,17 @@ interface HeroSlide {
   id: string;
   eyebrow: string;
   caption: string;
-  image: string;
+  /** Candidate image paths tried in order -- lets either a .png or .jpg
+   * dropped in with the matching name appear automatically. */
+  image: string[];
+  /** Optional dedicated portrait crop shown only below `md`, same
+   * png/jpg-candidate shape as `image`. Falls back to `image` (with a
+   * mobile-biased focal point) when a slide doesn't set one. */
+  mobileImage?: string[];
+  /** Tailwind object-position class for the mobile image, e.g. when the
+   * product sits somewhere other than where the default mobile crop
+   * (`object-[70%_center]`) lands. Defaults to that mobile crop when unset. */
+  mobileObjectPosition?: string;
   alt: string;
   tone: "peach" | "blush" | "cream" | "chocolate";
   icon: typeof Cake;
@@ -20,19 +30,10 @@ interface HeroSlide {
 
 const SLIDES: HeroSlide[] = [
   {
-    id: "cake",
-    eyebrow: "Signature Cake",
-    caption: "Triple Chocolate Mousse, layered with Callebaut Belgian chocolate.",
-    image: "/images/hero/signature-cake.jpg",
-    alt: "The Peachy's signature whole chocolate cake",
-    tone: "chocolate",
-    icon: Cake,
-  },
-  {
     id: "bingsu",
     eyebrow: "Signature Bingsu",
     caption: "Premium Strawberry Bingsu, shaved milk ice piled high with fresh fruit.",
-    image: "/images/hero/signature-bingsu.jpg",
+    image: ["/images/hero/signature-bingsu.png", "/images/hero/signature-bingsu.jpg"],
     alt: "The Peachy's signature strawberry bingsu",
     tone: "blush",
     icon: IceCreamBowl,
@@ -41,7 +42,7 @@ const SLIDES: HeroSlide[] = [
     id: "drink",
     eyebrow: "Signature Drink",
     caption: "Spanish Latte, espresso balanced with silky condensed milk.",
-    image: "/images/hero/signature-drink.jpg",
+    image: ["/images/hero/signature-drink.png", "/images/hero/signature-drink.jpg"],
     alt: "The Peachy's signature Spanish latte",
     tone: "cream",
     icon: Coffee,
@@ -62,7 +63,7 @@ export function Hero() {
   const Icon = slide.icon;
 
   return (
-    <section className="relative isolate flex min-h-[520px] items-center overflow-hidden md:min-h-[620px]">
+    <section className="relative isolate flex min-h-[80vh] items-end overflow-hidden md:min-h-155 md:items-center">
       <AnimatePresence initial={false} mode="sync">
         <motion.div
           key={slide.id}
@@ -72,33 +73,49 @@ export function Hero() {
           exit={{ opacity: 0 }}
           transition={{ duration: 1, ease: "easeInOut" }}
         >
+          {/* Mobile: a dedicated portrait crop when a slide provides one, else the
+              same photo with a focal point biased toward where the product sits. */}
+          <ProductImage
+            src={slide.mobileImage ?? slide.image}
+            alt={slide.alt}
+            tone={slide.tone}
+            className={`absolute inset-0 block ${slide.mobileObjectPosition ?? "object-[70%_center]"} [image-rendering:-webkit-optimize-contrast] md:hidden`}
+            priority={index === 0}
+            iconPosition="corner"
+            sizes="100vw"
+            quality={100}
+          />
           <ProductImage
             src={slide.image}
             alt={slide.alt}
             tone={slide.tone}
-            className="absolute inset-0"
+            className="absolute inset-0 hidden [image-rendering:-webkit-optimize-contrast] md:block"
             priority={index === 0}
             iconPosition="corner"
+            sizes="100vw"
+            quality={100}
           />
-          {/* Dark overlay so hero text stays readable over any background image */}
-          <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-black/10" />
-          <div className="absolute inset-0 bg-black/10" />
+          {/* Mobile: dark scrim rises from the bottom (where the text sits) and
+              fades out toward the top, so the product stays visible above it.
+              Desktop (unchanged): dark on the left under the text, fully clear
+              by ~58% across so the product on the right stays bright. */}
+          <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/40 to-transparent md:bg-[linear-gradient(to_right,rgba(0,0,0,0.75)_0%,rgba(0,0,0,0.45)_35%,rgba(0,0,0,0)_58%)]" />
         </motion.div>
       </AnimatePresence>
 
-      <div className="relative z-10 mx-auto w-full max-w-6xl px-4 py-12 sm:px-6 md:py-24">
+      <div className="relative z-10 mx-auto w-full max-w-6xl px-4 pt-8 pb-12 sm:px-6 md:py-24">
         <div className="max-w-xl space-y-6">
           <div>
             <p className="font-heading text-sm uppercase tracking-[0.2em] text-peach-light">Seoulful Temptations in Toronto</p>
             <h1 className="mt-3 font-heading text-display text-white">Everything is just peachy.</h1>
           </div>
 
-          <p className="max-w-md leading-relaxed text-white/85">
+          <p className="max-w-md text-sm leading-relaxed text-white/85 sm:text-base">
             Premium Korean-inspired whole cakes, spoon cakes, and bingsu — made with Belgian chocolate, organic
             vanilla bean, and fresh cream, never substitutes.
           </p>
 
-          <div className="min-h-16">
+          <div className="hidden md:block md:min-h-16">
             <AnimatePresence mode="wait">
               <motion.div
                 key={slide.id}
@@ -106,7 +123,7 @@ export function Hero() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -16 }}
                 transition={{ duration: 0.5 }}
-                className="flex items-center gap-3 rounded-xl border border-white/25 bg-white/10 px-4 py-3 backdrop-blur-sm"
+                className="flex items-center gap-3 rounded-xl border border-white/25 bg-white/10 p-4 backdrop-blur-sm"
               >
                 <Icon className="h-5 w-5 flex-shrink-0 text-peach-light" aria-hidden="true" />
                 <p className="text-sm text-white">
@@ -116,18 +133,18 @@ export function Hero() {
             </AnimatePresence>
           </div>
 
-          <div className="flex flex-wrap gap-3">
+          <div className="flex w-full flex-row flex-wrap gap-3 sm:w-auto">
             <Link
               href="/menu"
               data-analytics-id="hero-view-menu"
-              className="flex min-h-12 items-center rounded-full bg-peach px-7 font-medium text-white transition hover:opacity-90"
+              className="flex items-center justify-center rounded-full bg-peach px-4 py-2 text-sm font-medium text-white transition hover:opacity-90 sm:min-h-12 sm:px-7 sm:text-base"
             >
               View Menu
             </Link>
             <Link
               href="/contact"
               data-analytics-id="hero-contact"
-              className="flex min-h-12 items-center rounded-full border border-white/60 px-7 font-medium text-white transition hover:bg-white hover:text-ink"
+              className="flex items-center justify-center rounded-full border border-white/60 px-4 py-2 text-sm font-medium text-white transition hover:bg-white hover:text-ink sm:min-h-12 sm:px-7 sm:text-base"
             >
               Visit Us
             </Link>

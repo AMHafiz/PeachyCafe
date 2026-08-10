@@ -12,12 +12,23 @@ const TONE_CLASSES: Record<string, string> = {
 };
 
 interface ProductImageProps {
-  src: string | null;
+  /** A single path, or an ordered list of candidate paths (e.g. the same
+   * photo in multiple formats) -- tried in order, falling back to the
+   * placeholder once every candidate 404s. */
+  src: string | string[] | null;
   alt: string;
   tone: "peach" | "blush" | "cream" | "chocolate";
   className?: string;
   priority?: boolean;
   sizes?: string;
+  /** 1-100, passed straight to next/image. Defaults to Next's own default
+   * (75) -- bump this for large hero/banner images where compression
+   * artifacts are more visible. */
+  quality?: number;
+  /** Skips Next's image optimizer entirely and serves the source file as-is.
+   * Useful for a full-bleed hero where the source is already sized for the
+   * viewport and re-encoding it only adds another lossy pass. */
+  unoptimized?: boolean;
   /** "center" (default) suits square product tiles. "corner" tucks a smaller,
    * fainter icon into the bottom-right and hides it below `sm` -- for wide
    * banners (e.g. the hero) where a big centered icon would sit behind text. */
@@ -28,31 +39,47 @@ interface ProductImageProps {
  * Real product photography may not be dropped into /public/images/products/
  * yet (see data/products.ts). This renders the actual photo when `src`
  * resolves, and falls back to a branded placeholder -- with proper alt text
- * for screen readers -- both when `src` is null and when the file 404s, so
- * broken paths never show a broken-image icon.
+ * for screen readers -- both when `src` is null and when every candidate
+ * 404s, so broken paths never show a broken-image icon.
  */
-export function ProductImage({ src, alt, tone, className = "", priority, sizes, iconPosition = "center" }: ProductImageProps) {
-  const [failed, setFailed] = useState(false);
+export function ProductImage({
+  src,
+  alt,
+  tone,
+  className = "",
+  priority,
+  sizes,
+  quality,
+  unoptimized,
+  iconPosition = "center",
+}: ProductImageProps) {
+  const candidates = src === null ? [] : Array.isArray(src) ? src : [src];
+  const [attempt, setAttempt] = useState(0);
 
-  // Reset the error state during render (not in an effect) when `src` changes,
-  // e.g. switching gallery thumbnails -- avoids an extra commit per React's
-  // "adjusting state when a prop changes" guidance.
+  // Reset to the first candidate during render (not in an effect) when `src`
+  // changes, e.g. switching gallery thumbnails -- avoids an extra commit per
+  // React's "adjusting state when a prop changes" guidance.
   const [prevSrc, setPrevSrc] = useState(src);
   if (src !== prevSrc) {
     setPrevSrc(src);
-    setFailed(false);
+    setAttempt(0);
   }
 
-  if (src && !failed) {
+  const current = candidates[attempt];
+
+  if (current) {
     return (
       <Image
-        src={src}
+        key={current}
+        src={current}
         alt={alt}
         fill
         priority={priority}
         sizes={sizes ?? "(min-width: 1024px) 25vw, 50vw"}
+        quality={quality}
+        unoptimized={unoptimized}
         className={`object-cover ${className}`}
-        onError={() => setFailed(true)}
+        onError={() => setAttempt((a) => a + 1)}
       />
     );
   }

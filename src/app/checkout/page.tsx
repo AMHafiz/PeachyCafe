@@ -1,26 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useId, useState } from "react";
-import { Loader2, MapPin } from "lucide-react";
+import { useId, useMemo, useState } from "react";
+import { Loader2, MapPin, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 import { useCart } from "@/components/cart/CartContext";
 import { ProductImage } from "@/components/product/ProductImage";
 import { formatPrice } from "@/lib/format";
 import { ANALYTICS_EVENTS, track } from "@/lib/analytics";
-import type { CheckoutRequestBody } from "@/app/api/checkout/route";
+import { generateTimeSlots } from "@/lib/storeHours";
+import type { CloverCheckoutRequestBody } from "@/app/api/clover/checkout/route";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_PATTERN = /^[0-9()+\-.\s]{7,}$/;
-
-const TIME_SLOTS = [
-  "10:00 AM - 12:00 PM",
-  "12:00 PM - 2:00 PM",
-  "2:00 PM - 4:00 PM",
-  "4:00 PM - 6:00 PM",
-  "6:00 PM - 8:00 PM",
-];
 
 const inputClass =
   "min-h-12 w-full rounded-xl border border-border bg-white px-4 text-sm text-ink placeholder:text-ink-faint focus:border-peach focus:outline-none";
@@ -38,8 +30,7 @@ function todayIsoDate(): string {
 }
 
 export default function CheckoutPage() {
-  const { items, itemCount, subtotal, clearCart } = useCart();
-  const router = useRouter();
+  const { items, itemCount, subtotal } = useCart();
   const formId = useId();
 
   const [customerName, setCustomerName] = useState("");
@@ -51,7 +42,17 @@ export default function CheckoutPage() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  async function handlePlaceOrder(e: React.FormEvent) {
+  const timeSlots = useMemo(() => generateTimeSlots(pickupDate), [pickupDate]);
+
+  function handlePickupDateChange(nextDate: string) {
+    // Reset the time whenever the date changes -- a previously chosen slot may
+    // no longer be valid (different day's hours, or it's since passed today).
+    setPickupDate(nextDate);
+    setPickupTimeSlot("");
+    setErrors((prev) => ({ ...prev, pickupTimeSlot: undefined }));
+  }
+
+  async function handleCheckout(e: React.FormEvent) {
     e.preventDefault();
 
     const nextErrors: FormErrors = {};
@@ -67,7 +68,7 @@ export default function CheckoutPage() {
 
     setIsSubmitting(true);
     try {
-      const payload: CheckoutRequestBody = {
+      const payload: CloverCheckoutRequestBody = {
         customerName,
         customerEmail,
         customerPhone,
@@ -75,31 +76,27 @@ export default function CheckoutPage() {
         pickupTimeSlot,
         instructions: instructions.trim() || undefined,
         items: items.map((item) => ({
-          name: item.name,
+          productId: item.productId,
           sizeLabel: item.sizeLabel,
           quantity: item.quantity,
-          price: item.price,
         })),
-        subtotal,
       };
 
-      const res = await fetch("/api/checkout", {
+      const res = await fetch("/api/clover/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(data?.error ?? "We couldn't submit your order.");
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.url) {
+        throw new Error(data?.error ?? "We couldn't start checkout.");
       }
 
-      track(ANALYTICS_EVENTS.PURCHASE_COMPLETED, { itemCount, subtotal, pickupDate, pickupTimeSlot });
-      clearCart();
-      router.push("/checkout/confirmation");
+      track(ANALYTICS_EVENTS.CHECKOUT_STARTED, { itemCount, subtotal, pickupDate, pickupTimeSlot });
+      window.location.href = data.url;
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "We couldn't submit your order. Please try again.");
-    } finally {
+      toast.error(err instanceof Error ? err.message : "We couldn't start checkout. Please try again.");
       setIsSubmitting(false);
     }
   }
@@ -157,7 +154,7 @@ export default function CheckoutPage() {
         <span className="font-medium">{formatPrice(subtotal)}</span>
       </div>
 
-      <form onSubmit={handlePlaceOrder} noValidate className="mt-8 space-y-6">
+      <form onSubmit={handleCheckout} noValidate className="mt-8 space-y-6">
         <div className="space-y-4">
           <h2 className="font-heading text-base text-ink">Customer Details</h2>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -240,7 +237,7 @@ export default function CheckoutPage() {
                 type="date"
                 min={todayIsoDate()}
                 value={pickupDate}
-                onChange={(e) => setPickupDate(e.target.value)}
+                onChange={(e) => handlePickupDateChange(e.target.value)}
                 aria-invalid={!!errors.pickupDate}
                 aria-describedby={errors.pickupDate ? `${formId}-pickupDate-error` : undefined}
                 className={`mt-1.5 ${inputClass}`}
@@ -256,21 +253,32 @@ export default function CheckoutPage() {
               <label htmlFor={`${formId}-pickupTimeSlot`} className="block text-sm font-medium text-ink">
                 Requested Pickup Time Slot
               </label>
-              <select
-                id={`${formId}-pickupTimeSlot`}
-                value={pickupTimeSlot}
-                onChange={(e) => setPickupTimeSlot(e.target.value)}
-                aria-invalid={!!errors.pickupTimeSlot}
-                aria-describedby={errors.pickupTimeSlot ? `${formId}-pickupTimeSlot-error` : undefined}
-                className={`mt-1.5 ${inputClass}`}
-              >
-                <option value="">Select a time slot</option>
-                {TIME_SLOTS.map((slot) => (
-                  <option key={slot} value={slot}>
-                    {slot}
-                  </option>
-                ))}
-              </select>
+              {pickupDate && timeSlots.length === 0 ? (
+                <div
+                  id={`${formId}-pickupTimeSlot`}
+                  className="mt-1.5 flex min-h-12 items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 text-sm text-amber-800"
+                >
+                  <TriangleAlert className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
+                  <span>Ordering is unavailable for that day/time. Please choose another date.</span>
+                </div>
+              ) : (
+                <select
+                  id={`${formId}-pickupTimeSlot`}
+                  value={pickupTimeSlot}
+                  onChange={(e) => setPickupTimeSlot(e.target.value)}
+                  disabled={!pickupDate}
+                  aria-invalid={!!errors.pickupTimeSlot}
+                  aria-describedby={errors.pickupTimeSlot ? `${formId}-pickupTimeSlot-error` : undefined}
+                  className={`mt-1.5 ${inputClass} disabled:cursor-not-allowed disabled:opacity-60`}
+                >
+                  <option value="">{pickupDate ? "Select a time" : "Select a date first"}</option>
+                  {timeSlots.map((slot) => (
+                    <option key={slot.value} value={slot.value}>
+                      {slot.label}
+                    </option>
+                  ))}
+                </select>
+              )}
               {errors.pickupTimeSlot && (
                 <p id={`${formId}-pickupTimeSlot-error`} role="alert" className="mt-1.5 text-xs text-red-600">
                   {errors.pickupTimeSlot}
@@ -301,7 +309,7 @@ export default function CheckoutPage() {
           className="flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-peach px-6 font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
         >
           {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
-          {isSubmitting ? "Submitting Request..." : "Request Pickup"}
+          {isSubmitting ? "Redirecting to Payment..." : "Continue to Payment"}
         </button>
       </form>
     </div>

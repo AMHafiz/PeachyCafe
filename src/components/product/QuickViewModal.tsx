@@ -46,7 +46,7 @@ function QuickViewContent({ product }: { product: Product }) {
   return (
     <Dialog.Content asChild forceMount aria-describedby="quick-view-description">
       <motion.div
-        className="fixed left-1/2 top-1/2 z-50 flex max-h-[90vh] w-[calc(100%-2rem)] max-w-2xl -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl bg-white shadow-2xl sm:flex-row"
+        className="fixed left-1/2 top-1/2 z-50 grid max-h-[90vh] w-[calc(100%-2rem)] max-w-2xl -translate-x-1/2 -translate-y-1/2 grid-cols-1 overflow-hidden rounded-2xl bg-white shadow-2xl md:h-[520px] md:max-h-[80vh] md:grid-cols-2"
         initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.96 }}
@@ -63,76 +63,88 @@ function QuickViewContent({ product }: { product: Product }) {
           </button>
         </Dialog.Close>
 
-        <div className="relative h-56 flex-shrink-0 sm:h-auto sm:w-2/5">
+        {/* Left column: crisp, uncropped-looking square image. On desktop the grid row has
+            a definite height (md:h-[520px] on the container), so md:h-full resolves cleanly
+            -- unlike a flex row sized only by max-height, which leaves h-full ambiguous. */}
+        <div className="relative aspect-square w-full flex-shrink-0 overflow-hidden bg-neutral-100 md:aspect-auto md:h-full">
           <ProductImage
             src={product.image.src}
             alt={product.image.alt}
             tone={product.image.tone}
-            className="absolute inset-0"
-            sizes="(min-width: 640px) 40vw, 100vw"
+            className="absolute inset-0 object-cover object-center"
+            sizes="(min-width: 768px) 50vw, 100vw"
+            priority
           />
         </div>
 
-        <div className="flex flex-1 flex-col overflow-y-auto p-6">
-          {product.badges && product.badges.length > 0 && (
-            <div className="mb-2 flex flex-wrap gap-1.5">
-              {product.badges.map((b) => (
-                <Badge key={b} id={b} />
-              ))}
-            </div>
-          )}
-          <Dialog.Title className="font-heading text-2xl text-ink">{product.name}</Dialog.Title>
-          <div className="mt-1">
-            <RatingStars rating={product.rating} />
-          </div>
-          <p id="quick-view-description" className="mt-3 text-sm text-ink-muted">
-            {product.description}
-          </p>
-
-          {product.sizes.length > 1 && (
-            <div className="mt-4">
-              <span className="text-sm font-medium text-ink">Size</span>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {product.sizes.map((size) => (
-                  <button
-                    key={size.label}
-                    type="button"
-                    onClick={() => setSelectedSize(size.label)}
-                    disabled={size.price === null}
-                    aria-pressed={selectedSize === size.label}
-                    className={`flex min-h-11 items-center rounded-full border px-4 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50 ${
-                      selectedSize === size.label
-                        ? "border-peach bg-peach text-white"
-                        : "border-border text-ink hover:border-peach"
-                    }`}
-                  >
-                    {size.label} · {formatPrice(size.price)}
-                  </button>
+        {/* Right column: independently scrollable so long ingredient/allergen copy never
+            pushes the image or forces the whole modal taller. min-h-0 overrides the grid
+            item's default min-height:auto, which would otherwise stop it from shrinking to
+            fit the row and disable the scroll. */}
+        <div className="flex min-h-0 flex-col overflow-y-auto">
+          <div className="flex-1 p-6 pb-0">
+            {product.badges && product.badges.length > 0 && (
+              <div className="mb-2 flex flex-wrap gap-1.5">
+                {product.badges.map((b) => (
+                  <Badge key={b} id={b} />
                 ))}
               </div>
+            )}
+            <Dialog.Title className="font-heading text-2xl text-ink">{product.name}</Dialog.Title>
+            <div className="mt-1">
+              <RatingStars rating={product.rating} />
             </div>
-          )}
+            <p id="quick-view-description" className="mt-3 text-sm text-ink-muted">
+              {product.description}
+            </p>
 
-          <dl className="mt-5 grid gap-3 text-sm">
-            <div>
-              <dt className="font-medium text-ink">Ingredients</dt>
-              <dd className="text-ink-muted">{product.ingredients.join(", ")}</dd>
-            </div>
-            <div>
-              <dt className="font-medium text-ink">Allergens</dt>
-              <dd className="text-ink-muted">{product.allergens.length ? `Contains: ${product.allergens.join(", ")}` : "No major allergens listed"}</dd>
-            </div>
-            <div>
-              <dt className="font-medium text-ink">Storage &amp; Serving</dt>
-              <dd className="text-ink-muted">{product.storage} {product.servingInfo}</dd>
-            </div>
-            <div>
-              <dt className="font-medium text-ink">Shelf Life</dt>
-              <dd className="text-ink-muted">{product.shelfLife}</dd>
-            </div>
-          </dl>
+            {product.sizes.length > 1 && (
+              <div className="mt-4">
+                <span className="text-sm font-medium text-ink">Size</span>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {product.sizes.map((size) => (
+                    <button
+                      key={size.label}
+                      type="button"
+                      onClick={() => setSelectedSize(size.label)}
+                      disabled={size.price === null}
+                      aria-pressed={selectedSize === size.label}
+                      className={`flex min-h-11 items-center rounded-full border px-4 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                        selectedSize === size.label
+                          ? "border-peach bg-peach text-white"
+                          : "border-border text-ink hover:border-peach"
+                      }`}
+                    >
+                      {size.label} · {formatPrice(size.price)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
-          <div className="mt-6 flex items-center justify-between gap-4 border-t border-border pt-6">
+            <dl className="mt-5 grid gap-3 text-sm">
+              <div>
+                <dt className="font-medium text-ink">Ingredients</dt>
+                <dd className="text-ink-muted">{product.ingredients.join(", ")}</dd>
+              </div>
+              <div>
+                <dt className="font-medium text-ink">Allergens</dt>
+                <dd className="text-ink-muted">{product.allergens.length ? `Contains: ${product.allergens.join(", ")}` : "No major allergens listed"}</dd>
+              </div>
+              <div>
+                <dt className="font-medium text-ink">Storage &amp; Serving</dt>
+                <dd className="text-ink-muted">{product.storage} {product.servingInfo}</dd>
+              </div>
+              <div>
+                <dt className="font-medium text-ink">Shelf Life</dt>
+                <dd className="text-ink-muted">{product.shelfLife}</dd>
+              </div>
+            </dl>
+          </div>
+
+          {/* Sticky footer: stays pinned to the bottom of this scroll container so price/Add
+              to Cart are always reachable without hunting through long product details. */}
+          <div className="sticky bottom-0 mt-6 flex items-center justify-between gap-4 border-t border-border bg-white px-6 py-4">
             <span className="font-heading text-xl text-ink">
               {formatPrice(product.sizes.find((s) => s.label === selectedSize)?.price ?? null)}
             </span>

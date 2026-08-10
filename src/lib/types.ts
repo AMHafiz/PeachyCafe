@@ -36,7 +36,8 @@ export type BadgeId =
   | "new"
   | "limited-time"
   | "seasonal"
-  | "coming-soon";
+  | "coming-soon"
+  | "sold-out";
 
 export interface ProductSize {
   label: string;
@@ -78,6 +79,8 @@ export interface Product {
   pairsWith?: string[];
   /** True for the seeded Drinks/Bakery items that stand in for a menu the client hasn't published yet. */
   isPlaceholderContent?: boolean;
+  /** Real item, real price, temporarily out of stock -- distinct from a null size price ("Coming Soon" / TBA). */
+  isSoldOut?: boolean;
 }
 
 export interface CartLine {

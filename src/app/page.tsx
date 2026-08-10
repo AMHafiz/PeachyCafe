@@ -15,6 +15,12 @@ const INGREDIENT_HIGHLIGHTS = [
 
 const FEATURED_IDS = ["wc-strawberry-chocolate", "wc-triple-chocolate-mousse", "bs-premium-strawberry", "sc-ice-box-oreo"];
 
+const BINGSU_SPOTLIGHT_IMAGE = "/images/home/bingsu-spotlight.jpg";
+
+function categoryImage(categoryId: string) {
+  return `/images/categories/${categoryId}.jpg`;
+}
+
 export default function HomePage() {
   const availableCategories = CATEGORIES.filter((c) => products.some((p) => p.category === c.id));
   const featured = FEATURED_IDS.map(getProductById).filter((p): p is NonNullable<typeof p> => p !== undefined);
@@ -40,7 +46,7 @@ export default function HomePage() {
       <section className="bg-blush">
         <div className="mx-auto grid max-w-6xl items-center gap-8 px-4 py-14 sm:px-6 md:grid-cols-2">
           <div className="relative aspect-[4/3] overflow-hidden rounded-2xl md:order-2">
-            <ProductImage src={null} alt="Bowl of shaved ice bingsu topped with fresh fruit" tone="peach" className="absolute inset-0" />
+            <ProductImage src={BINGSU_SPOTLIGHT_IMAGE} alt="Bowl of shaved ice bingsu topped with fresh fruit" tone="peach" className="absolute inset-0" />
           </div>
           <div>
             <p className="font-heading text-sm uppercase tracking-[0.2em] text-peach">Summer Specialty</p>
@@ -71,7 +77,12 @@ export default function HomePage() {
               data-analytics-id={`home-category-${category.id}`}
               className="group relative flex aspect-square flex-col justify-end overflow-hidden rounded-2xl"
             >
-              <ProductImage src={null} alt="" tone="cream" className="absolute inset-0 transition duration-300 group-hover:scale-105" />
+              <ProductImage
+                src={categoryImage(category.id)}
+                alt=""
+                tone="cream"
+                className="absolute inset-0 transition duration-300 group-hover:scale-105"
+              />
               <span className="relative bg-gradient-to-t from-black/60 to-transparent p-4 font-heading text-lg text-white">
                 {category.label}
               </span>

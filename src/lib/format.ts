@@ -15,7 +15,7 @@ export function startingPrice(product: Product): string {
 }
 
 export function isOrderable(product: Product): boolean {
-  return product.sizes.some((s) => s.price !== null);
+  return !product.isSoldOut && product.sizes.some((s) => s.price !== null);
 }
 
 export function minPrice(product: Product): number | null {

@@ -7,6 +7,7 @@ const BADGE_LABELS: Record<BadgeId, string> = {
   "limited-time": "Limited Time",
   seasonal: "Seasonal",
   "coming-soon": "Coming Soon",
+  "sold-out": "Sold Out",
 };
 
 const BADGE_CLASSES: Record<BadgeId, string> = {
@@ -16,6 +17,7 @@ const BADGE_CLASSES: Record<BadgeId, string> = {
   "limited-time": "bg-amber-600 text-white",
   seasonal: "bg-cocoa text-white",
   "coming-soon": "bg-surface text-ink-muted border border-border",
+  "sold-out": "bg-surface text-ink-muted border border-border",
 };
 
 export function Badge({ id }: { id: BadgeId }) {
