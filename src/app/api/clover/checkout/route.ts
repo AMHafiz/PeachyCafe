@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { formatPickupTimeValue } from "@/lib/storeHours";
 import { getProductById } from "@/data/products";
+import { encryptOrderConfirmation } from "@/lib/orderConfirmationToken";
 
 export interface CloverCheckoutItem {
   productId: string;
@@ -26,6 +27,9 @@ interface CloverLineItem {
 }
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Ontario HST.
+const TAX_RATE = 0.13;
 
 function isValidItems(items: unknown): items is CloverCheckoutItem[] {
   return (
@@ -119,6 +123,33 @@ export async function POST(request: Request) {
     lineItems[0].note = noteLines.join(" | ");
   }
 
+  // Subtotal from the re-derived catalog prices, never from the client.
+  const subtotalCents = lineItems.reduce((sum, item) => sum + item.price * item.unitQty, 0);
+  const taxCents = Math.round(subtotalCents * TAX_RATE);
+  const totalAmountCents = subtotalCents + taxCents;
+
+  // Snapshot the product lines for the confirmation-email receipt before the
+  // synthetic HST line below joins the array Clover sees.
+  const receiptItems = lineItems.map((item) => ({ name: item.name, quantity: item.unitQty, priceCents: item.price }));
+
+  lineItems.push({ name: "HST (13%)", price: taxCents, unitQty: 1 });
+
+  const orderNumber = `PC-${Date.now().toString(36).toUpperCase()}`;
+  const confirmationToken = encryptOrderConfirmation({
+    orderNumber,
+    issuedAt: Date.now(),
+    customerName: body.customerName,
+    customerEmail: body.customerEmail,
+    customerPhone: body.customerPhone,
+    pickupDate: body.pickupDate,
+    pickupTimeSlot: body.pickupTimeSlot,
+    instructions: body.instructions,
+    items: receiptItems,
+    subtotalCents,
+    taxCents,
+    totalCents: totalAmountCents,
+  });
+
   const { firstName, lastName } = splitName(body.customerName);
   const apiHost =
     process.env.CLOVER_ENVIRONMENT === "production" ? "https://api.clover.com" : "https://apisandbox.dev.clover.com";
@@ -134,7 +165,7 @@ export async function POST(request: Request) {
   // checkout still works locally; the customer just lands on Clover's
   // generic confirmation screen instead of bouncing back to the site.
   const redirectUrls = origin.startsWith("https://")
-    ? { success: `${origin}/order-success`, failure: `${origin}/checkout` }
+    ? { success: `${origin}/order-success?order=${confirmationToken}`, failure: `${origin}/checkout` }
     : undefined;
 
   try {
@@ -154,6 +185,8 @@ export async function POST(request: Request) {
           ...(body.customerPhone?.trim() ? { phoneNumber: body.customerPhone.trim() } : {}),
         },
         shoppingCart: { lineItems },
+        amount: totalAmountCents,
+        tax_amount: taxCents,
         ...(redirectUrls ? { redirectUrls } : {}),
       }),
     });

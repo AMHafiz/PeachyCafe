@@ -15,6 +15,18 @@ export default function OrderSuccessPage() {
     hasRun.current = true;
     track(ANALYTICS_EVENTS.PURCHASE_COMPLETED, { itemCount, subtotal });
     clearCart();
+
+    const token = new URLSearchParams(window.location.search).get("order");
+    if (token) {
+      // Strip the token from the visible URL immediately -- it's single-use,
+      // and this also means a page refresh won't re-trigger the emails below.
+      window.history.replaceState({}, "", window.location.pathname);
+      fetch("/api/clover/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token }),
+      }).catch((err) => console.error("Failed to send order confirmation emails:", err));
+    }
     // Runs once on landing here after a successful Clover redirect -- itemCount/subtotal
     // are only read for this one-time analytics call, not to react to cart changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
