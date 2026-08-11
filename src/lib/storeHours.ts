@@ -76,6 +76,25 @@ export function formatPickupTimeValue(value: string): string {
   return formatMinutesAsLabel(Number(hours) * 60 + Number(minutes));
 }
 
+/** "YYYY-MM-DD" -> "August 15, 2026". Returns null for missing/invalid input. */
+export function formatPickupDateLabel(isoDate?: string | null): string | null {
+  if (!isoDate) return null;
+  const date = parseIsoDateLocal(isoDate);
+  if (!date) return null;
+  return date.toLocaleDateString("en-CA", { year: "numeric", month: "long", day: "numeric" });
+}
+
+/**
+ * Combines a pickup date and time-slot value into "August 15, 2026 at 3:30 PM".
+ * Falls back to whichever half is available, and to null when neither is.
+ */
+export function formatPickupDateTime(pickupDate?: string | null, pickupTimeSlot?: string | null): string | null {
+  const datePart = formatPickupDateLabel(pickupDate);
+  const timePart = pickupTimeSlot ? formatPickupTimeValue(pickupTimeSlot) : null;
+  if (datePart && timePart) return `${datePart} at ${timePart}`;
+  return datePart ?? timePart ?? null;
+}
+
 /**
  * Generates the pickup time slots available for `isoDate`. When `isoDate` is
  * today, slots at or before the current time are excluded -- e.g. at 2:00 PM

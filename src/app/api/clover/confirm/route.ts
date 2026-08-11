@@ -103,35 +103,86 @@ function renderCustomerReceiptHtml(order: OrderConfirmationPayload): string {
   `;
 }
 
+function sectionLabel(text: string): string {
+  return `<p style="margin:16px 0 6px;font-weight:700;text-transform:uppercase;font-size:11px;letter-spacing:0.05em;color:#757575;">${text}</p>`;
+}
+
+function renderBakeryItemRows(order: OrderConfirmationPayload): string {
+  const headerRow = `
+    <tr style="color:#757575;font-size:12px;">
+      <td style="padding:0 8px 6px 0;text-align:left;">Item</td>
+      <td style="padding:0 8px 6px;text-align:right;">Unit Price</td>
+      <td style="padding:0 8px 6px;text-align:center;">Qty</td>
+      <td style="padding:0 0 6px;text-align:right;">Subtotal</td>
+    </tr>`;
+
+  const rows = order.items
+    .map(
+      (item) => `
+        <tr style="border-top:1px solid #e4dcd8;">
+          <td style="padding:6px 8px 6px 0;">${item.name}</td>
+          <td style="padding:6px 8px;text-align:right;color:#757575;">${formatCurrency(item.priceCents)}</td>
+          <td style="padding:6px 8px;text-align:center;color:#757575;">&times;${item.quantity}</td>
+          <td style="padding:6px 0;text-align:right;font-weight:600;">${formatCurrency(item.priceCents * item.quantity)}</td>
+        </tr>`
+    )
+    .join("");
+
+  return `${headerRow}${rows}`;
+}
+
 function renderBakeryNotificationHtml(order: OrderConfirmationPayload): string {
   return `
-    <div style="font-family:sans-serif;font-size:14px;color:#1a1b1f;">
-      <h2 style="color:#ed767a;">New paid order -- ${order.orderNumber}</h2>
+    <div style="font-family:'Courier New',Courier,monospace;font-size:14px;color:#1a1b1f;max-width:520px;">
+      <div style="background:#1a1b1f;color:#fff;padding:14px 18px;border-radius:10px 10px 0 0;">
+        <p style="margin:0;font-size:17px;font-weight:700;">🚨 New Online Order Received!</p>
+        <p style="margin:4px 0 0;font-size:13px;color:#f3c9c9;">Order #${order.orderNumber}</p>
+      </div>
 
-      <table style="width:100%;border-collapse:collapse;">
-        <tr>
-          <td style="padding:4px 12px 4px 0;color:#757575;">Name</td>
-          <td>${order.customerName}</td>
-        </tr>
-        <tr>
-          <td style="padding:4px 12px 4px 0;color:#757575;">Email</td>
-          <td>${order.customerEmail}</td>
-        </tr>
-        ${order.customerPhone ? `<tr><td style="padding:4px 12px 4px 0;color:#757575;">Phone</td><td>${order.customerPhone}</td></tr>` : ""}
-      </table>
+      <div style="border:2px solid #1a1b1f;border-top:none;border-radius:0 0 10px 10px;padding:16px 18px;">
+        ${sectionLabel("Customer Details")}
+        <table style="width:100%;border-collapse:collapse;">
+          <tr>
+            <td style="padding:2px 12px 2px 0;color:#757575;">Full Name</td>
+            <td style="font-weight:600;">${order.customerName}</td>
+          </tr>
+          <tr>
+            <td style="padding:2px 12px 2px 0;color:#757575;">Phone Number</td>
+            <td style="font-weight:600;">${order.customerPhone || "--"}</td>
+          </tr>
+          <tr>
+            <td style="padding:2px 12px 2px 0;color:#757575;">Email</td>
+            <td style="font-weight:600;">${order.customerEmail}</td>
+          </tr>
+        </table>
 
-      <hr style="margin:16px 0;border:none;border-top:1px solid #e4dcd8;" />
+        ${sectionLabel("Fulfillment Info")}
+        <table style="width:100%;border-collapse:collapse;">${renderPickupRows(order)}</table>
 
-      <table style="width:100%;border-collapse:collapse;">${renderPickupRows(order)}</table>
+        ${sectionLabel("Special Instructions")}
+        <div style="border:1px dashed #ed767a;border-radius:8px;padding:10px 12px;white-space:pre-wrap;">
+          ${order.instructions?.trim() || "None"}
+        </div>
 
-      <hr style="margin:16px 0;border:none;border-top:1px solid #e4dcd8;" />
+        ${sectionLabel("Itemized Order")}
+        <table style="width:100%;border-collapse:collapse;">${renderBakeryItemRows(order)}</table>
 
-      <table style="width:100%;border-collapse:collapse;">
-        ${renderItemRows(order)}
-        ${renderTotalsRows(order)}
-      </table>
-
-      ${order.instructions ? `<p style="margin-top:16px;white-space:pre-wrap;"><strong>Special Instructions:</strong><br />${order.instructions}</p>` : ""}
+        ${sectionLabel("Financial Summary")}
+        <table style="width:100%;border-collapse:collapse;">
+          <tr>
+            <td style="padding:2px 12px 2px 0;color:#757575;">Subtotal</td>
+            <td style="text-align:right;">${formatCurrency(order.subtotalCents)}</td>
+          </tr>
+          <tr>
+            <td style="padding:2px 12px 2px 0;color:#757575;">Tax (13% HST)</td>
+            <td style="text-align:right;">${formatCurrency(order.taxCents)}</td>
+          </tr>
+          <tr style="border-top:1px solid #1a1b1f;">
+            <td style="padding:8px 12px 0 0;font-size:16px;font-weight:700;">Grand Total</td>
+            <td style="padding:8px 0 0;text-align:right;font-size:16px;font-weight:700;">${formatCurrency(order.totalCents)}</td>
+          </tr>
+        </table>
+      </div>
     </div>
   `;
 }
@@ -153,11 +204,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid or expired order token." }, { status: 400 });
   }
 
+  // Pickup info the client needs to render its confirmation copy -- included on every
+  // response from here on, since it only depends on the token, not on email delivery.
+  const pickupFields = { pickupDate: order.pickupDate, pickupTimeSlot: order.pickupTimeSlot };
+
   const apiKey = process.env.RESEND_API_KEY;
-  const bakeryEmail = process.env.BAKERY_NOTIFICATION_EMAIL;
-  if (!apiKey || !bakeryEmail) {
-    console.error("Order confirmation requested but RESEND_API_KEY / BAKERY_NOTIFICATION_EMAIL is not configured.");
-    return NextResponse.json({ error: "Email service is not configured." }, { status: 500 });
+  if (!apiKey) {
+    console.error("Order confirmation requested but RESEND_API_KEY is not configured.");
+    return NextResponse.json({ error: "Email service is not configured.", ...pickupFields }, { status: 500 });
+  }
+
+  const storeEmail = process.env.STORE_NOTIFICATION_EMAIL;
+  if (!storeEmail) {
+    // Non-fatal -- the customer still needs their receipt even if the bakery
+    // alert can't be sent. Falls back to just logging so the order isn't lost silently.
+    console.error("STORE_NOTIFICATION_EMAIL is not configured -- skipping bakery order alert for", order.orderNumber);
   }
 
   const resend = new Resend(apiKey);
@@ -166,17 +227,19 @@ export async function POST(request: Request) {
     resend.emails.send({
       from: FROM_ADDRESS,
       to: order.customerEmail,
-      replyTo: bakeryEmail,
+      ...(storeEmail ? { replyTo: storeEmail } : {}),
       subject: `Order Confirmed: ${order.orderNumber} — The Peachy`,
       html: renderCustomerReceiptHtml(order),
     }),
-    resend.emails.send({
-      from: FROM_ADDRESS,
-      to: bakeryEmail,
-      replyTo: order.customerEmail,
-      subject: `New Paid Order ${order.orderNumber}: ${order.customerName} — ${formatCurrency(order.totalCents)}`,
-      html: renderBakeryNotificationHtml(order),
-    }),
+    storeEmail
+      ? resend.emails.send({
+          from: FROM_ADDRESS,
+          to: storeEmail,
+          replyTo: order.customerEmail,
+          subject: `🚨 New Online Order Received! - Order #${order.orderNumber}`,
+          html: renderBakeryNotificationHtml(order),
+        })
+      : Promise.resolve(null),
   ]);
 
   if (customerResult.error) {
@@ -185,16 +248,16 @@ export async function POST(request: Request) {
       message: customerResult.error.message,
     });
   }
-  if (bakeryResult.error) {
+  if (bakeryResult?.error) {
     console.error("Resend failed to send bakery order notification:", {
       name: bakeryResult.error.name,
       message: bakeryResult.error.message,
     });
   }
 
-  if (customerResult.error && bakeryResult.error) {
-    return NextResponse.json({ error: "We couldn't send order confirmation emails." }, { status: 502 });
+  if (customerResult.error) {
+    return NextResponse.json({ error: "We couldn't send your order confirmation email.", ...pickupFields }, { status: 502 });
   }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, ...pickupFields });
 }
