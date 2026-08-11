@@ -151,8 +151,12 @@ export async function POST(request: Request) {
   });
 
   const { firstName, lastName } = splitName(body.customerName);
+  // The Hosted Checkout API (/invoicingcheckoutservice/...) lives on Clover's
+  // "scl" host, which is distinct from the general REST API host
+  // (apisandbox.dev.clover.com / api.clover.com). Using the wrong host here
+  // returns a 401 or a 502 from Clover's gateway instead of a clear error.
   const apiHost =
-    process.env.CLOVER_ENVIRONMENT === "production" ? "https://api.clover.com" : "https://apisandbox.dev.clover.com";
+    process.env.CLOVER_ENVIRONMENT === "production" ? "https://scl.clover.com" : "https://scl-sandbox.dev.clover.com";
 
   // Prefer an explicit configured origin, then the browser's Origin header,
   // then fall back to the incoming request's own origin -- works locally
@@ -191,9 +195,23 @@ export async function POST(request: Request) {
       }),
     });
 
-    const data = await cloverRes.json().catch(() => null);
+    // Read as text first -- a non-2xx response (e.g. a gateway-level 401/502)
+    // is often HTML or plain text, not JSON, and .json() would otherwise
+    // swallow the actual error body.
+    const rawBody = await cloverRes.text();
+    let data: { href?: string } | null = null;
+    try {
+      data = rawBody ? JSON.parse(rawBody) : null;
+    } catch {
+      data = null;
+    }
+
     if (!cloverRes.ok || !data?.href) {
-      console.error("Clover failed to create checkout session:", cloverRes.status, data);
+      console.error(
+        `Clover checkout session creation failed [${cloverRes.status} ${cloverRes.statusText}] ` +
+          `POST ${apiHost}/invoicingcheckoutservice/v1/checkouts -- raw response:`,
+        rawBody
+      );
       return NextResponse.json({ error: "We couldn't start checkout. Please try again shortly." }, { status: 502 });
     }
 
