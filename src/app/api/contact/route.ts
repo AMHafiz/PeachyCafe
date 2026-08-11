@@ -17,7 +17,7 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // Resend's shared testing sender -- swap for a verified sending domain
 // (e.g. orders@thepeachy.ca) once one is configured in the Resend dashboard.
-const FROM_ADDRESS = "The Peachy Website <onboarding@resend.dev>";
+const FROM_ADDRESS = "Peachy Cafe <no-reply@pfona.com>";
 
 /** "custom-cake" -> "Custom Cake". Inquiry type / pickup location are submitted as slugs. */
 function humanize(value: string | undefined): string {

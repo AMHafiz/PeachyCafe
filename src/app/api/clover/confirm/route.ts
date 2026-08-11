@@ -5,7 +5,7 @@ import { decryptOrderConfirmation, type OrderConfirmationPayload } from "@/lib/o
 
 // Resend's shared testing sender -- swap for a verified sending domain
 // (e.g. orders@thepeachy.ca) once one is configured in the Resend dashboard.
-const FROM_ADDRESS = "The Peachy Website <onboarding@resend.dev>";
+const FROM_ADDRESS = "Peachy Cafe <no-reply@pfona.com>";
 
 function formatCurrency(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
