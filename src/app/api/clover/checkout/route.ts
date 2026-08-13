@@ -155,10 +155,10 @@ export async function POST(request: Request) {
   // "scl" host, which is distinct from the general REST API host
   // (apisandbox.dev.clover.com / api.clover.com). Using the wrong host here
   // returns a 401 or a 502 from Clover's gateway instead of a clear error.
-  const apiHost =
-    process.env.CLOVER_ENVIRONMENT === "production" ? "https://scl.clover.com" : "https://scl-sandbox.dev.clover.com";
-
-  // Prefer an explicit configured origin, then the browser's Origin header,
+ const apiHost =
+  process.env.CLOVER_ENVIRONMENT === "production"
+    ? "https://api.clover.com"
+    : "https://apisandbox.dev.clover.com";  // Prefer an explicit configured origin, then the browser's Origin header,
   // then fall back to the incoming request's own origin -- works locally
   // (http://localhost:3000) and on Vercel without any extra config.
   const origin =
@@ -169,15 +169,29 @@ export async function POST(request: Request) {
   // checkout still works locally; the customer just lands on Clover's
   // generic confirmation screen instead of bouncing back to the site.
   const redirectUrls = origin.startsWith("https://")
-    ? { success: `${origin}/order-success?order=${confirmationToken}`, failure: `${origin}/checkout` }
-    : undefined;
+  ? {
+      success: `${origin}/order-success?order=${confirmationToken}`,
+      failure: `${origin}/checkout`,
+    }
+  : undefined;
 
-  try {
-    const cloverRes = await fetch(`${apiHost}/invoicingcheckoutservice/v1/checkouts`, {
+try {
+  console.log("CLOVER DEBUG:", {
+    environment: process.env.CLOVER_ENVIRONMENT,
+    merchant: process.env.CLOVER_MERCHANT_ID,
+    keyStart: process.env.CLOVER_PRIVATE_KEY?.slice(0, 2),
+    keyLength: process.env.CLOVER_PRIVATE_KEY?.length,
+    keyExists: Boolean(process.env.CLOVER_PRIVATE_KEY),
+  });
+
+  // keep the rest of your existing code...
+
+const cloverRes = await fetch(`${apiHost}/invoicingcheckoutservice/v1/checkouts`, {
       method: "POST",
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",
+        "User-Agent": "PeachyCafe/1.0",
         "X-Clover-Merchant-Id": merchantId,
         Authorization: `Bearer ${privateKey}`,
       },
